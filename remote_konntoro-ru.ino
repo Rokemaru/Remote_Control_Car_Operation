@@ -1,76 +1,132 @@
+#include <Adafruit_ILI9341.h>
+
 #include "MeOrion.h"
 #include <SoftwareSerial.h>
 
-uint8_t motorSpeed = 100;
-uint8_t motorSpeed_L = 90;
-
 MeDCMotor motorR(M1);
 MeDCMotor motorL(M2);
+MeInfraredReceiver irReceiver(PORT_4);
 
+const uint8_t minSpeed = 0;
+const uint8_t maxSpeed = 255;
+const uint8_t accelStep = 5;
+const uint16_t accelDelay = 20;
 
-// ポート定義
-MeInfraredReceiver infraredReceiverDecode(PORT_4);  // IRレシーバをPORT_4に接続
-
-// void TurnLight(); // 必要に応じて有効化
+int targetSpeed = 0;
+int currentSpeed = 0;
+int moveDirection = 0;  // 進行方向
 
 void setup() {
-  infraredReceiverDecode.begin();  // IRレシーバの初期化
-  Serial.begin(9600);              // シリアル通信開始
-  Serial.println("InfraredReceiverDecode Start!");
-  Stop();  // 初期状態で停止
+  irReceiver.begin();
+  Serial.begin(9600);
+  Serial.println("Start Full Direction Control");
+  stopMotors();
 }
 
 void loop() {
-  if (infraredReceiverDecode.available() || infraredReceiverDecode.buttonState()) {
-    switch (infraredReceiverDecode.read()) {
+  if (irReceiver.available() || irReceiver.buttonState()) {
+    uint8_t cmd = irReceiver.read();
+
+    switch (cmd) {
       case IR_BUTTON_UP:
-        Forward();  // 前進させる処理
+        targetSpeed = maxSpeed;
+        moveDirection = 1;  // 前進
         break;
       case IR_BUTTON_DOWN:
-        Backward();  // 後進させる処理
+        targetSpeed = maxSpeed;
+        moveDirection = -1;  // 後退
         break;
       case IR_BUTTON_RIGHT:
-        TurnRight();  //右旋回させる処理
+        targetSpeed = maxSpeed;
+        moveDirection = 2;  // 右折
         break;
       case IR_BUTTON_LEFT:
-        TurnLeft();  // 左旋回させる処理
+        targetSpeed = maxSpeed;
+        moveDirection = -2;  // 左折
+        break;
+
+      case IR_BUTTON_E:  // 右前
+        targetSpeed = maxSpeed;
+        moveDirection = 3;
+        break;
+      case IR_BUTTON_D:  // 左前
+        targetSpeed = maxSpeed;
+        moveDirection = -3;
+        break;
+      case IR_BUTTON_F:  // 右後ろ
+        targetSpeed = maxSpeed;
+        moveDirection = 4;
+        break;
+      case IR_BUTTON_0:  // 左後ろ
+        targetSpeed = maxSpeed;
+        moveDirection = -4;
+        break;
+
+      default:
         break;
     }
   } else {
-    Stop();  // 停止する処理
+    targetSpeed = 0;  // ボタンを離したら停止
+  }
+
+  updateSpeed();
+  driveMotors();
+  delay(accelDelay);
+}
+
+void updateSpeed() {
+  if (currentSpeed < targetSpeed) {
+    currentSpeed += accelStep;
+    if (currentSpeed > targetSpeed) currentSpeed = targetSpeed;
+  } else if (currentSpeed > targetSpeed) {
+    currentSpeed -= accelStep;
+    if (currentSpeed < targetSpeed) currentSpeed = targetSpeed;
   }
 }
 
+void driveMotors() {
+  switch (moveDirection) {
+    case 1:  // 前進
+      motorL.run(currentSpeed);
+      motorR.run(currentSpeed);
+      break;
+    case -1:  // 後退
+      motorL.run(-currentSpeed);
+      motorR.run(-currentSpeed);
+      break;
+    case 2:  // 右折
+      motorL.run(currentSpeed);
+      motorR.run(-currentSpeed);
+      break;
+    case -2:  // 左折
+      motorL.run(-currentSpeed);
+      motorR.run(currentSpeed);
+      break;
+    case 3:  // 右前
+      motorL.run(currentSpeed);
+      motorR.run((int)(currentSpeed * 0.5));
+      break;
+    case -3:  // 左前
+      motorL.run((int)(currentSpeed * 0.5));
+      motorR.run(currentSpeed);
+      break;
+    case 4:  // 右後ろ
+      motorL.run(-currentSpeed);
+      motorR.run((int)(-currentSpeed * 0.5));
+      break;
+    case -4:  // 左後ろ
+      motorL.run((int)(-currentSpeed * 0.5));
+      motorR.run(-currentSpeed);
+      break;
 
-// 前進
-void Forward() {
-  motorL.run(motorSpeed);  // 左モーター前進
-  motorR.run(motorSpeed);  // 右モーター前進
+    default:
+      motorL.stop();
+      motorR.stop();
+      break;
+  }
 }
 
-// 後退
-void Backward() {
-  motorL.run(-motorSpeed);  // 左モーター前進
-  motorR.run(-motorSpeed);  // 右モーター前進
-}
-
-// 右折
-void TurnRight() {
-
-  motorL.run(motorSpeed_L);   // 左モーター前進
-  motorR.run(-motorSpeed_L);  // 右モーター前進
-}
-
-// 左折
-void TurnLeft() {
-
-  motorL.run(-motorSpeed);  // 左モーター前進
-  motorR.run(motorSpeed);   // 右モーター前進
-}
-
-// 停止
-void Stop() {
-
-  motorR.stop();
+void stopMotors() {
   motorL.stop();
+  motorR.stop();
 }
