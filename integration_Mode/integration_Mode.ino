@@ -8,11 +8,10 @@ MeDCMotor motorL(M2);
 // IRリモコン
 MeInfraredReceiver irReceiver(PORT_4);
 
-// 別のモーター用ピン。ポート3に指す。
+// 補助モーター（ポート3に接続）
 #define PIN_1 12
 #define PIN_2 13
 
-// モーター速度制御用
 const uint8_t minSpeed = 0;
 const uint8_t maxSpeed = 250;
 const uint8_t accelStep = 5;
@@ -22,12 +21,16 @@ int targetSpeed = 0;
 int currentSpeed = 0;
 int moveDirection = 0;
 
+// --- 補助モーター動作時間制御用 ---
+unsigned long auxMotorStartTime = 0;
+const unsigned long auxMotorDuration = 500; // 500msだけONにする
+bool auxMotorActive = false;
+
 void setup() {
   pinMode(PIN_1, OUTPUT);
   pinMode(PIN_2, OUTPUT);
 
   irReceiver.begin();
-  // シリアルポートがエラーを起こす原因の可能性がある？
   Serial.begin(9600);
   Serial.println("Start Full Direction Control");
 
@@ -35,24 +38,26 @@ void setup() {
   stopAuxMotor();
 }
 
-// ここで受け取ったボタンに対してのスイッチ文で分岐させて、実行している。
 void loop() {
   if (irReceiver.available() || irReceiver.buttonState()) {
     uint8_t cmd = irReceiver.read();
-    Serial.print("IR Code: ");
-    Serial.println(cmd);
 
+    Serial.print("IR Code Received: ");
+    Serial.println(cmd);  // IRコードの数値を確認できるようにする
 
-    // ========== モータードライバー制御 ==========
+    // ========== 補助モーター制御 ==========
     if (cmd == IR_BUTTON_1) {
       aux_L_H();
+      auxMotorActive = true;
+      auxMotorStartTime = millis();
     } else if (cmd == IR_BUTTON_2) {
       aux_H_L();
+      auxMotorActive = true;
+      auxMotorStartTime = millis();
     }
 
-
+    // ========== 移動用モーター制御 ==========
     switch (cmd) {
-      // ========== 移動用 ==========
       case IR_BUTTON_UP:
         targetSpeed = maxSpeed;
         moveDirection = 1;
@@ -85,20 +90,18 @@ void loop() {
         targetSpeed = maxSpeed;
         moveDirection = -4;
         break;
-
-      // この箇所で、何もしてない時の動作を書き込む。
       default:
-        // stopAuxMotor();
         stopMotors();
         break;
     }
-    // --- 補助モーターを止める条件：1と2以外のとき ---
-    if (cmd != IR_BUTTON_1 && cmd != IR_BUTTON_2) {
-      stopAuxMotor();
-    }
-
   } else {
     targetSpeed = 0;
+  }
+
+  // 補助モーターを一定時間後に自動停止
+  if (auxMotorActive && (millis() - auxMotorStartTime > auxMotorDuration)) {
+    stopAuxMotor();
+    auxMotorActive = false;
   }
 
   updateSpeed();
@@ -106,7 +109,6 @@ void loop() {
   delay(accelDelay);
 }
 
-// 加速、減速はこの箇所で処理。モータの回す値を決めた値、決めた時間で増加させたり減らしてる。
 void updateSpeed() {
   if (currentSpeed < targetSpeed) {
     currentSpeed += accelStep;
@@ -117,7 +119,6 @@ void updateSpeed() {
   }
 }
 
-// ラジコンの動きのモータの挙動をスイッチ文で出てきた値をもとに実行している。
 void driveMotors() {
   switch (moveDirection) {
     case 1:
@@ -159,13 +160,12 @@ void driveMotors() {
   }
 }
 
-
 void stopMotors() {
   motorL.stop();
   motorR.stop();
 }
 
-// 個々から下はモータドライバー制御の関数をここで定義。
+// === 補助モーター制御関数 ===
 void aux_H_L() {
   digitalWrite(PIN_1, HIGH);
   digitalWrite(PIN_2, LOW);
