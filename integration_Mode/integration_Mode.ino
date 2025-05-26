@@ -13,9 +13,9 @@ MeInfraredReceiver irReceiver(PORT_4);
 #define PIN_2 13
 
 const uint8_t minSpeed = 0;
-const uint8_t maxSpeed = 250;
+const uint8_t maxSpeed = 255;
 const uint8_t accelStep = 5;
-const uint16_t accelDelay = 20;
+const uint16_t accelDelay = 1;
 
 int targetSpeed = 0;
 int currentSpeed = 0;
