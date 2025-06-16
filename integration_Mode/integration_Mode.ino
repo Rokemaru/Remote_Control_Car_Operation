@@ -23,7 +23,7 @@ int moveDirection = 0;
 
 // --- 補助モーター動作時間制御用 ---
 unsigned long auxMotorStartTime = 0;
-const unsigned long auxMotorDuration = 500; // 500msだけONにする
+const unsigned long auxMotorDuration = 50; // 500msだけONにする
 bool auxMotorActive = false;
 
 void setup() {
@@ -179,9 +179,4 @@ void aux_L_H() {
 void stopAuxMotor() {
   digitalWrite(PIN_1, HIGH);
   digitalWrite(PIN_2, HIGH);
-}
-
-void brakeAuxMotor() {
-  digitalWrite(PIN_1, LOW);
-  digitalWrite(PIN_2, LOW);
 }
