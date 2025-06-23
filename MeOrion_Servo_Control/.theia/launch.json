@@ -1,0 +1,86 @@
+/*
+ * ポート1から電源供給されるモータードライバを、
+ * ポート4に接続した赤外線リモコンで操作するプログラム
+ */
+
+ #include "MeOrion.h" // MakeBlockのライブラリを読み込む
+
+// モータードライバ制御ピン (ポート1に接続した場合)
+const int MOTOR_IN1_PIN = 11;
+const int MOTOR_IN2_PIN = 10;
+ 
+ // 赤外線受信機 (ポート4に接続)
+ MeInfraredReceiver infraredReceiverDecode(PORT_4);
+ 
+ void setup() {
+   // モーター制御ピンを出力に設定
+   pinMode(MOTOR_IN1_PIN, OUTPUT);
+   pinMode(MOTOR_IN2_PIN, OUTPUT);
+ 
+   // 赤外線受信を開始
+   infraredReceiverDecode.begin();
+   
+   // デバッグ用にシリアルモニタを開始
+   Serial.begin(9600);
+   Serial.println("Infrared Remote Control Start!");
+ }
+ 
+ void loop() {
+   // 赤外線リモコンの信号を受信したか確認
+   if (infraredReceiverDecode.available()) {
+     // 受信したコードを読み取る
+     int keyCode = infraredReceiverDecode.read();
+ 
+     // どのボタンが押されたかに応じて処理を分岐
+     switch (keyCode) {
+       case IR_BUTTON_UP: // 「上」ボタン
+         Serial.println("Forward");
+         Forward();
+         break;
+       
+       case IR_BUTTON_DOWN: // 「下」ボタン
+         Serial.println("Backward");
+         Backward();
+         break;
+ 
+       // 必要に応じて左右の旋回なども追加
+       // case IR_BUTTON_LEFT:
+       //   TurnLeft();
+       //   break;
+       // case IR_BUTTON_RIGHT:
+       //   TurnRight();
+       //   break;
+         
+       default:
+         // 上下以外のボタンが押されたら停止
+         Stop();
+         break;
+     }
+   } else {
+     // 何もボタンが押されていなければ停止する
+     Stop();
+   }
+ }
+ 
+ // === モーター制御用の関数 ===
+ 
+ // 前進
+ void Forward() {
+   // Hブリッジの制御則（正転）
+   digitalWrite(MOTOR_IN1_PIN, HIGH);
+   digitalWrite(MOTOR_IN2_PIN, LOW);
+ }
+ 
+ // 後進
+ void Backward() {
+   // Hブリッジの制御則（逆転）
+   digitalWrite(MOTOR_IN1_PIN, LOW);
+   digitalWrite(MOTOR_IN2_PIN, HIGH);
+ }
+ 
+ // 停止
+ void Stop() {
+   // Hブリッジの制御則（ストップ）
+   digitalWrite(MOTOR_IN1_PIN, LOW);
+   digitalWrite(MOTOR_IN2_PIN, LOW);
+ }
