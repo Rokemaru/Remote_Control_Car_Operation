@@ -7,7 +7,7 @@
  * ・赤外線受信機　　：ポート4
  */
 
-#include "MeOrion.h" // MakeBlockのライブラリを読み込む
+#include "MeOrion.h"  // MakeBlockのライブラリを読み込む
 
 // === 各種設定 ===
 // モータードライバ制御ピン (ポート1に接続した場合)
@@ -24,7 +24,7 @@ void setup() {
 
   // 赤外線受信を開始
   infraredReceiverDecode.begin();
-  
+
   // デバッグ用にシリアルモニタを開始（動作確認に便利です）
   Serial.begin(9600);
   Serial.println("Infrared Remote Control Start!");
@@ -38,14 +38,14 @@ void loop() {
 
     // どのボタンが押されたかに応じて処理を分岐
     switch (keyCode) {
-      case IR_BUTTON_UP: // 「上」ボタンが押された場合
+      case IR_BUTTON_UP:  // 「上」ボタンが押された場合
         Forward();
         break;
-      
-      case IR_BUTTON_DOWN: // 「下」ボタンが押された場合
+
+      case IR_BUTTON_DOWN:  // 「下」ボタンが押された場合
         Backward();
         break;
-        
+
       default:
         // 上下以外のボタン、または不要な信号(0x00, 0xFFなど)の場合は
         // 何もしないで無視する

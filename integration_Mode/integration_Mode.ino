@@ -23,7 +23,7 @@ int moveDirection = 0;
 
 // --- 補助モーター動作時間制御用 ---
 unsigned long auxMotorStartTime = 0;
-const unsigned long auxMotorDuration = 50; // 500msだけONにする
+const unsigned long auxMotorDuration = 50;  // 500msだけONにする
 bool auxMotorActive = false;
 
 void setup() {
